@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>BallRanger.io</title>
+    <style>
+        /* --- 基础清除与全屏高科技重置 --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050508; /* 极深赛博底色，防止3D未加载完成时一片苍白 */
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* --- 3D 渲染画布容器 --- */
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1; /* 3D画面置于底层 */
+        }
+
+        /* --- 现代高级感磨砂玻璃通用样式 (Glassmorphism) --- */
+        .glass-panel {
+            background: rgba(10, 10, 18, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 200, 0.2); /* 霓虹极细边框 */
+            border-radius: 16px;
+            color: #ffffff;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* --- 主菜单/大厅封面 UI 容器 --- */
+        #main-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10; /* 覆盖在3D之上 */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4vh 4vw;
+        }
+
+        /* 游戏高级标题 */
+        .game-title {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 255, 200, 0.6), 0 0 20px rgba(0, 255, 200, 0.3);
+            margin-top: 5vh;
+        }
+
+        /* 中央选秀与战备库控制台 */
+        .lobby-center {
+            width: min(90vw, 800px);
+            height: 45vh;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        /* 磨砂卡片布局 */
+        .armory-card {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* 动作按钮样式 - 高科技霓虹流动感 */
+        .btn-action {
+            background: linear-gradient(135deg, #00ffc8 0%, #0088ff 100%);
+            border: none;
+            border-radius: 12px;
+            color: #050508;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 15px 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 255, 200, 0.4);
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 5px rgba(0, 255, 200, 0.2);
+        }
+
+        /* --- 局内游戏操作 UI (In-Game HUD) --- */
+        #game-hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            display: none; /* 初始隐藏，点击START后显示 */
+            pointer-events: none; /* 穿透触摸，允许全屏划动操作 */
+        }
+        .interactive {
+            pointer-events: auto; /* 恢复HUD按钮的点击响应 */
+        }
+
+        /* 右上角 Top 5 排行榜 */
+        .leaderboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 220px;
+            padding: 15px;
+            font-family: monospace;
+        }
+
+        /* 右下角动作技能操作盘 */
+        .action-panel {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+        }
+        .hud-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        /* 锁头状态样式 */
+        .hud-btn.locked::after {
+            content: '🔒';
+            position: absolute;
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.5);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 全局警告消息提示框 (Message) */
+        #global-message {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            border-color: #ff0055;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
+            display: none;
+            z-index: 100;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 3D渲染舞台容器 -->
+    <div id="canvas-container"></div>
+
+    <!-- 2. 全局高科技报错警告提示框 -->
+    <div id="global-message" class="glass-panel"></div>
+
+    <!-- 3. 高级感主菜单界面 -->
+    <div id="main-menu">
+        <h1 class="game-title">BALLRANGER.IO</h1>
+        
+        <div class="lobby-center">
+            <!-- 局外战备库 (Armory) -->
+            <div class="armory-card glass-panel">
+                <h3>ARMORY STOCK</h3>
+                <div id="shop-items">
+                    <!-- 武器与子弹信息将由 GameUI.js 动态注入 -->
+                </div>
+                <button class="btn-action" style="font-size: 0.9rem; padding: 10px;" onclick="alert('Watch Ad logic will bridge here')">WATCH AD FOR AMMO</button>
+            </div>
+            
+            <!-- 皮肤选择卡片 -->
+            <div class="armory-card glass-panel">
+                <h3>SELECT ORB</h3>
+                <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+                    <!-- 3D 概念球将在此处后方自转展示 -->
+                    <span style="color:rgba(255,255,255,0.4)">[ 3D Preview Arena ]</span>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-action" style="flex:1; font-size:0.8rem; padding:8px;">PREV</button>
+                    <button class="btn-action" style="flex:1; font-size:0.8rem; padding:8px;">NEXT</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-action" style="width: min(80vw, 300px); margin-bottom: 5vh;" id="start-btn">START GAME</button>
+    </div>
+
+    <!-- 4. 局内游戏操作HUD -->
+    <div id="game-hud">
+        <!-- 实时排行榜 -->
+        <div class="leaderboard glass-panel">
+            <h4 style="color:#00ffc8; margin-bottom:5px;">TOP 5 RANGERS</h4>
+            <div id="leaderboard-list">
+                <!-- 由 GameUI.js 实时同步更新 -->
+            </div>
+        </div>
+
+        <!-- 动作操作面板 (右半边屏幕) -->
+        <div class="action-panel">
+            <!-- 默认人人都有的冲刺按钮 -->
+            <div id="btn-dash" class="hud-btn glass-panel interactive" style="border-color:#fff;">DASH</div>
+            <!-- 武器大招插槽 (示例带锁状态，由后续系统控制) -->
+            <div id="btn-weapon" class="hud-btn glass-panel interactive locked" style="border-color:#00ffc8;">SKILL</div>
+        </div>
+    </div>
+
+    <!-- 5. 核心底层第三方3D库引入 (采用2026年极为稳定的标准CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- 6. 游戏自身模块化架构解耦导入 -->
+    <script src="MainScene.js"></script>
+    <script src="PhysicsEngine.js"></script>
+    <script src="WeaponSystem.js"></script>
+    <script src="GameUI.js"></script>
+
+    <script>
+        // 初始化指挥部自执行检查，确保DOM加载完美
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("BallRanger.io: Super Headquarters (File 1) is fully operational.");
+        });
+    </script>
+</body>
+</html>
