@@ -2,417 +2,290 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BallRanger.io - High-Tech 3D Arena</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>BallRanger.io</title>
     <style>
-        /* ==========================================================================
-           全域與基礎設定 (Global & Base Reset)
-           ========================================================================== */
+        /* --- 全局赛博高科技 UI 样式重置 --- */
         * {
             box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
         }
-
-        html, body {
+        body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #05050a;
-            color: #ffffff;
+            background-color: #050508;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
-        /* WebGL 渲染畫布容器 */
+        /* --- 3D 渲染底层画布 --- */
         #canvas-container {
+            width: 100%;
+            height: 100%;
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
             z-index: 1;
         }
 
-        /* 遊戲主要 UI 圖層 (採用 Flexbox 與 Grid 實現跨平台自適應) */
-        #ui-layer {
+        /* --- 苹果风顶级磨砂玻璃效果 --- */
+        .glass-panel {
+            background: rgba(10, 10, 18, 0.65);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 255, 200, 0.25);
+            border-radius: 16px;
+            color: #ffffff;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        /* --- 主菜单大厅界面 --- */
+        #main-menu {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 10;
-            pointer-events: none; /* 允許點擊穿透至下層的 3D 畫布 */
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-        }
-
-        /* 啟用互動元素的通用類別 */
-        .interactive {
-            pointer-events: auto;
-        }
-
-        /* ==========================================================================
-           科幻磨砂玻璃與霓虹特效 (Sci-Fi Glassmorphism & Neon Styles)
-           ========================================================================== */
-        .glass-panel {
-            background: rgba(10, 15, 30, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 242, 254, 0.25);
-            box-shadow: 0 0 20px rgba(0, 242, 254, 0.1), inset 0 0 10px rgba(0, 242, 254, 0.05);
-            border-radius: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .neon-text-cyan {
-            color: #00f2fe;
-            text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
-        }
-
-        .neon-text-magenta {
-            color: #ff007f;
-            text-shadow: 0 0 8px rgba(ff, 0, 127, 0.6);
-        }
-
-        /* ==========================================================================
-           頂部狀態欄 (Top Status Bar)
-           ========================================================================== */
-        .top-hud {
-            width: 100%;
-            display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 2vh 4vw;
+            padding: 4vh 4vw;
+            transition: opacity 0.5s ease;
         }
 
-        .player-stats {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5vh;
-            min-width: 25%;
+        .game-title {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: #fff;
+            text-shadow: 0 0 12px rgba(0, 255, 200, 0.6), 0 0 24px rgba(0, 255, 200, 0.3);
+            margin-top: 5vh;
         }
 
-        .stat-bar-container {
-            width: 100%;
-            height: 1.5vh;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .stat-bar-fill {
-            height: 100%;
-            width: 100%;
-            transform-origin: left;
-            transition: transform 0.2s ease;
-        }
-
-        #hp-bar { background: linear-gradient(90deg, #ff0055, #ff007f); }
-        #energy-bar { background: linear-gradient(90deg, #0072ff, #00f2fe); }
-
-        .match-info {
-            text-align: center;
-            font-weight: bold;
-            font-size: calc(1.2rem + 0.5vh);
-            letter-spacing: 2px;
-            padding: 1vh 3vw;
-        }
-
-        .leaderboard {
-            padding: 1.5vh 2vw;
-            font-size: calc(0.75rem + 0.3vh);
-            min-width: 20%;
-        }
-        
-        .leaderboard h3 {
-            margin-bottom: 0.5vh;
-            font-size: calc(0.85rem + 0.3vh);
-            border-bottom: 1px solid rgba(0, 242, 254, 0.3);
-            padding-bottom: 0.3vh;
-        }
-
-        .leaderboard ol {
-            list-style-position: inside;
-        }
-
-        /* ==========================================================================
-           操作控制層 (Input Controls Layout - Split Screen)
-           ========================================================================== */
-        .controls-layer {
-            width: 100%;
+        .lobby-center {
+            width: min(90vw, 800px);
             height: 45vh;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
-            padding: 0 4vw 4vh 4vw;
+            gap: 20px;
         }
 
-        /* 左半部：動態觸控搖桿區域 */
-        .left-input-zone {
+        .armory-card {
             flex: 1;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            position: relative;
-        }
-
-        /* 虛擬搖桿本體 (預設隱藏，由 JS 動態於觸控點生成或固定顯示) */
-        #virtual-joystick {
-            width: 25vw;
-            height: 25vw;
-            max-width: 140px;
-            max-height: 140px;
-            border-radius: 50%;
-            background: rgba(0, 242, 254, 0.05);
-            border: 2px solid rgba(0, 242, 254, 0.4);
-            box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-
-        #joystick-knob {
-            width: 40%;
-            height: 40%;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00f2fe, #4facfe);
-            box-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
-            position: absolute;
-            transition: transform 0.05s linear;
-        }
-
-        /* 右半部：技能與衝刺按鈕區域 */
-        .right-input-zone {
-            flex: 1;
-            height: 100%;
-            display: flex;
-            justify-content: flex-end;
-            align-items: flex-end;
-            gap: 3vw;
-        }
-
-        .action-btn {
-            width: 16vw;
-            height: 16vw;
-            max-width: 85px;
-            max-height: 85px;
-            border-radius: 50%;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* 极光流水霓虹动作按钮 */
+        .btn-action {
+            background: linear-gradient(135deg, #00ffc8 0%, #0088ff 100%);
+            border: none;
+            border-radius: 12px;
+            color: #050508;
             font-weight: bold;
-            font-size: calc(0.75rem + 0.3vh);
+            font-size: 1.2rem;
+            padding: 15px 30px;
             cursor: pointer;
-            border: 1px solid rgba(255, 0, 127, 0.4);
-            box-shadow: 0 0 10px rgba(ff, 0, 127, 0.2);
-            background: rgba(20, 10, 25, 0.7);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px rgba(0, 255, 200, 0.4);
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 5px rgba(0, 255, 200, 0.2);
         }
 
-        .action-btn:active {
-            transform: scale(0.92);
-            background: rgba(ff, 0, 127, 0.2);
-            border-color: #ff007f;
-            box-shadow: 0 0 20px rgba(ff, 0, 127, 0.6);
-        }
-
-        #btn-dash {
-            border-color: rgba(0, 242, 254, 0.4);
-            box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
-        }
-        #btn-dash:active {
-            background: rgba(0, 242, 254, 0.2);
-            border-color: #00f2fe;
-            box-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
-        }
-
-        /* ==========================================================================
-           滿版彈出視窗與大廳選單 (Full-screen Overlay/Menus)
-           ========================================================================== */
-        .screen-overlay {
+        /* --- 局内战术操作 HUD 界面 --- */
+        #game-hud {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 100;
+            z-index: 5;
+            display: none; /* 默认隐藏，启动后强行开启 */
+            pointer-events: none; /* 穿透触摸，交给左屏虚拟摇杆 */
+        }
+        .interactive {
+            pointer-events: auto; /* 按钮恢复点击 */
+        }
+
+        .leaderboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 220px;
+            padding: 15px;
+            font-family: monospace;
+        }
+
+        .action-panel {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+        }
+        .hud-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 5vw;
-        }
-
-        .menu-card {
-            width: 90%;
-            max-width: 500px;
-            padding: 4vh 6vw;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            gap: 3vh;
-        }
-
-        .menu-card h1 {
-            font-size: calc(1.8rem + 1vh);
-            letter-spacing: 4px;
-        }
-
-        .menu-input {
-            width: 100%;
-            padding: 1.5vh 2vw;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(0, 242, 254, 0.3);
-            border-radius: 6px;
-            color: #fff;
-            font-size: 1rem;
-            text-align: center;
-            outline: none;
-        }
-
-        .menu-input:focus {
-            border-color: #00f2fe;
-            box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
-        }
-
-        .primary-btn {
-            width: 100%;
-            padding: 1.8vh 0;
-            background: linear-gradient(90deg, #00f2fe, #4facfe);
-            border: none;
-            border-radius: 6px;
-            color: #05050a;
             font-weight: bold;
-            font-size: 1.1rem;
-            letter-spacing: 2px;
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            font-size: 0.9rem;
+            position: relative;
+        }
+        .hud-btn.locked::after {
+            content: '🔒';
+            position: absolute;
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.6);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        .primary-btn:hover, .primary-btn:active {
-            box-shadow: 0 0 25px rgba(0, 242, 254, 0.8);
-            transform: translateY(-2px);
-        }
-
-        .hidden {
-            display: none !important;
+        /* 警告消息弹窗 */
+        #global-message {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            border: 2px solid #ff0055;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+            display: none;
+            z-index: 100;
+            font-weight: bold;
+            text-align: center;
         }
     </style>
-
-    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        }
-      }
-    </script>
 </head>
 <body>
 
     <div id="canvas-container"></div>
 
-    <div id="ui-layer">
+    <div id="global-message" class="glass-panel"></div>
+
+    <div id="main-menu">
+        <h1 class="game-title">BALLRANGER.IO</h1>
         
-        <div class="top-hud">
-            <div class="player-stats glass-panel" style="padding: 1vh 2vw;">
-                <div class="stat-bar-container">
-                    <div id="hp-bar" class="stat-bar-fill"></div>
+        <div class="lobby-center">
+            <div class="armory-card glass-panel">
+                <h3 style="color:#00ffc8;">ARMORY STOCK</h3>
+                <div id="shop-items" style="margin: 10px 0; font-size: 0.9rem;">
+                    <div>⚡ Lightning Ammo: <span id="ui-lightning-count">0</span></div>
+                    <div>🧲 Vacuum Ammo: <span id="ui-vacuum-count">0</span></div>
                 </div>
-                <div class="stat-bar-container">
-                    <div id="energy-bar" class="stat-bar-fill"></div>
+                <button class="btn-action" style="font-size: 0.9rem; padding: 10px;" id="ad-ammo-btn">WATCH AD FOR AMMO</button>
+            </div>
+            
+            <div class="armory-card glass-panel">
+                <h3 style="color:#0088ff;">SELECT ORB</h3>
+                <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+                    <span style="color:rgba(255,255,255,0.3)">[ 3D Arena Preview ]</span>
                 </div>
-            </div>
-
-            <div id="match-timer" class="match-info glass-panel neon-text-cyan">
-                05:00
-            </div>
-
-            <div class="leaderboard glass-panel">
-                <h3 class="neon-text-cyan">LEADERBOARD</h3>
-                <ol id="leaderboard-list">
-                    <li><span class="neon-text-magenta">Player 1</span> - 2500</li>
-                    <li>Player 2 - 1800</li>
-                    <li>Player 3 - 1200</li>
-                </ol>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-action" style="flex:1; font-size:0.8rem; padding:8px;">PREV</button>
+                    <button class="btn-action" style="flex:1; font-size:0.8rem; padding:8px;">NEXT</button>
+                </div>
             </div>
         </div>
 
-        <div class="controls-layer">
-            <div class="left-input-zone interactive" id="joystick-zone">
-                <div id="virtual-joystick">
-                    <div id="joystick-knob"></div>
-                </div>
-            </div>
+        <button class="btn-action" style="width: min(80vw, 300px); margin-bottom: 5vh;" id="start-btn">START GAME</button>
+    </div>
 
-            <div class="right-input-zone">
-                <div id="btn-dash" class="action-btn interactive neon-text-cyan">
-                    <span>DASH</span>
-                </div>
-                <div id="btn-skill" class="action-btn interactive neon-text-magenta">
-                    <span>SKILL</span>
-                </div>
-            </div>
+    <div id="game-hud">
+        <div class="leaderboard glass-panel">
+            <h4 style="color:#00ffc8; margin-bottom:5px;">TOP 5 RANGERS</h4>
+            <div id="leaderboard-list"></div>
+        </div>
+
+        <div class="action-panel">
+            <div id="btn-dash" class="hud-btn glass-panel interactive" style="border-color:#fff; cursor:pointer;">DASH</div>
+            <div id="btn-weapon" class="hud-btn glass-panel interactive locked" style="border-color:#00ffc8; cursor:pointer;">SKILL</div>
         </div>
     </div>
 
-    <div id="main-menu" class="screen-overlay interactive">
-        <div class="menu-card glass-panel">
-            <h1 class="neon-text-cyan">BALLRANGER.IO</h1>
-            <input type="text" id="player-name" class="menu-input" placeholder="ENTER PILOT NAME" maxlength="15" value="Ranger_01">
-            <button id="btn-start" class="primary-btn">ENTER ARENA</button>
-        </div>
-    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <div id="game-over-screen" class="screen-overlay hidden">
-        <div class="menu-card glass-panel">
-            <h1 class="neon-text-magenta">DEFEATED</h1>
-            <p>You have been vaporized in the arena.</p>
-            <button id="btn-respawn" class="primary-btn interactive">RESPAWN</button>
-        </div>
-    </div>
-
-    <script type="module">
-        // 導入模組化系統，為後續開發的文件進行基底宣告與初始化串接
-        import * as THREE from 'three';
-        import { PhysicsEngine } from './PhysicsEngine.js';
-        import { WeaponSystem } from './WeaponSystem.js';
-        import { GameUI } from './GameUI.js';
-        import { MainScene } from './MainScene.js';
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // 初始化全域遊戲管理器狀態，供各模組進行交互存取
-            window.GameManager = {
-                physics: null,
-                weapons: null,
-                ui: null,
-                scene: null,
-                
-                init() {
-                    // 核心初始化鏈結，於後續文件實作後依序解鎖
-                    console.log("BallRanger.io: Architecture framework initialized.");
-                }
-            };
-
-            // 執行初始化
-            window.GameManager.init();
-        });
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 在所有 JS 加载前，强行在最高窗口注入全局状态变量，防止物理引擎和UI打架
+        window.isGameRunning = false;
+        window.playerWallet = window.playerWallet || { coins: 5, lightning: 0, vacuum: 0, hasShield: false, hasLightning: false, hasVacuum: false };
+    </script>
 
     <script src="MainScene.js"></script>
     <script src="PhysicsEngine.js"></script>
     <script src="WeaponSystem.js"></script>
-    
     <script src="GameUI.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("BallRanger.io: 全盘合体初始化就绪。正在架设破门通路...");
+
+            const startButton = document.getElementById('start-btn');
+            const mainMenu = document.getElementById('main-menu');
+            const gameHud = document.getElementById('game-hud');
+
+            // 核心破门点火函数
+            function executeGameLaunch() {
+                // 如果主界面已经关了，说明运行中，直接跳过防止二次初始化
+                if (mainMenu && mainMenu.style.display === 'none') return;
+
+                console.log("🔥 收到起跑信号！强行切断封面，释放 3D 战场！");
+                
+                // 1. UI 瞬间切换
+                if (mainMenu) mainMenu.style.display = 'none';
+                if (gameHud) gameHud.style.display = 'block';
+
+                // 2. 强行激活所有子文件里的核心状态机
+                window.isGameRunning = true;
+                if (typeof isGameRunning !== 'undefined') isGameRunning = true;
+
+                // 3. 强行激活 File 3 物理引擎的局内对局初始化
+                if (typeof initPhysicsMatch === 'function') {
+                    initPhysicsMatch();
+                } else if (window.initPhysicsMatch === 'function') {
+                    window.initPhysicsMatch();
+                }
+
+                // 4. 强行拉起 File 2 3D 渲染主循环（防止静止一片黑）
+                if (typeof animate === 'function') {
+                    requestAnimationFrame(animate);
+                }
+            }
+
+            // 监听一：强行绑定鼠标点击、电话和 iPad 的手指触摸
+            if (startButton) {
+                startButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    executeGameLaunch();
+                });
+                startButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    executeGameLaunch();
+                });
+            }
+
+            // 监听二：强行破门！键盘 Enter 键死死绑架
+            window.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.keyCode === 13) {
+                    executeGameLaunch();
+                }
+            });
+        });
     </script>
 </body>
 </html>
