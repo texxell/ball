@@ -1445,3 +1445,65 @@ window.playNoAmmoAudioFeedback = function() {
 };
 
 console.log("[GameUI.js] 生產級完整擴充模組加載完畢。一切子系統已鎖定，無佔位符。");
+// ==========================================
+// 大本营终极修复补丁：强行绑定 START 按钮与 Enter 键
+// ==========================================
+function enforceGameStart() {
+    console.log("大本营补丁：正在强行拦截并绑定启动事件...");
+    
+    // 1. 获取 File 1 里的 START 按钮
+    const startButton = document.getElementById('start-btn');
+    const mainMenu = document.getElementById('main-menu');
+    const gameHud = document.getElementById('game-hud');
+
+    // 核心启动函数
+    function triggerStart() {
+        console.log("游戏核心启动信号触发！");
+        if (mainMenu) mainMenu.style.display = 'none'; // 隐藏高科技封面
+        if (gameHud) gameHud.style.display = 'block';  // 释放局内HUD界面
+        
+        // 激活 File 2 和 File 3 的游戏时钟循环
+        if (typeof isGameRunning !== 'undefined') {
+            isGameRunning = true; 
+        } else {
+            window.isGameRunning = true; // 确保全局变量被点燃
+        }
+        
+        // 如果物理引擎有重置函数，在此处激活
+        if (typeof initPhysicsMatch === 'function') {
+            initPhysicsMatch();
+        }
+    }
+
+    // 2. 强行绑定鼠标/手指点击
+    if (startButton) {
+        startButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            triggerStart();
+        });
+        startButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            triggerStart();
+        });
+    } else {
+        console.error("错误：File 1 中没有找到 id 为 'start-btn' 的按钮！");
+    }
+
+    // 3. 强行监听键盘 Enter 键（满足按 Enter 进游戏的需求）
+    window.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.keyCode === 13) {
+            // 只有当主界面还在的时候，按 Enter 才管用
+            if (mainMenu && mainMenu.style.display !== 'none') {
+                console.log("检测到键盘 Enter 键被按下！");
+                triggerStart();
+            }
+        }
+    });
+}
+
+// 确保 DOM 树一好，立刻强行执行破门
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', enforceGameStart);
+} else {
+    enforceGameStart();
+}
