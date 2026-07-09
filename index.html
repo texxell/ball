@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>BallRanger.io</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>BallRanger.io - Production Build</title>
     <style>
-        /* --- 全局赛博高科技 UI 样式重置 --- */
+        /* --- [1] 2026 顶级赛博暗黑重置，消除所有机型拉伸与死角 --- */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -14,14 +14,15 @@
             -webkit-user-select: none;
         }
         body, html {
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden;
-            background-color: #050508;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #030305;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            color: #ffffff;
         }
 
-        /* --- 3D 渲染底层画布 --- */
+        /* --- [2] 3D 画布容器：死死锁在底层 --- */
         #canvas-container {
             width: 100%;
             height: 100%;
@@ -31,18 +32,17 @@
             z-index: 1;
         }
 
-        /* --- 苹果风顶级磨砂玻璃效果 --- */
+        /* --- [3] 苹果风顶级磨砂玻璃卡片 (Glassmorphism)，自带极细发光霓虹边框 --- */
         .glass-panel {
-            background: rgba(10, 10, 18, 0.65);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(0, 255, 200, 0.25);
-            border-radius: 16px;
-            color: #ffffff;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            background: rgba(10, 11, 20, 0.55);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(0, 255, 200, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6);
         }
 
-        /* --- 主菜单大厅界面 --- */
+        /* --- [4] 主界面 Dashboard：采用严格的弹性盒 (Flexbox) 均匀排版，绝对不贴在一起 --- */
         #main-menu {
             position: absolute;
             top: 0;
@@ -54,54 +54,96 @@
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
-            padding: 4vh 4vw;
-            transition: opacity 0.5s ease;
+            padding: 6vh 4vw;
+            box-sizing: border-box;
         }
 
+        /* 高级流光标题 */
         .game-title {
-            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-size: clamp(2.2rem, 7vw, 4.5rem);
             font-weight: 900;
-            letter-spacing: 4px;
-            color: #fff;
-            text-shadow: 0 0 12px rgba(0, 255, 200, 0.6), 0 0 24px rgba(0, 255, 200, 0.3);
-            margin-top: 5vh;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #ffffff 0%, #00ffc8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 255, 200, 0.25);
+            margin-top: 2vh;
         }
 
+        /* 战备大厅中控台：彻底拉开间距 (gap: 30px) */
         .lobby-center {
-            width: min(90vw, 800px);
-            height: 45vh;
+            width: min(92vw, 900px);
             display: flex;
-            justify-content: space-between;
-            gap: 20px;
+            flex-direction: row;
+            justify-content: center;
+            gap: 30px; /* 强行拉开左右卡片的距离，防止挤压 */
+            margin: auto 0;
         }
 
+        /* 如果是细长的手机屏幕，自动切为上下排版，依然优雅不重叠 */
+        @media (max-width: 768px) {
+            .lobby-center {
+                flex-direction: column;
+                width: 85vw;
+                gap: 15px;
+            }
+            .armory-card { height: 22vh !important; }
+        }
+
+        /* 单个战备卡片 */
         .armory-card {
             flex: 1;
-            padding: 20px;
+            height: 38vh;
+            padding: 25px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
 
-        /* 极光流水霓虹动作按钮 */
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        /* 商店零售列表样式 */
+        .shop-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.85);
+        }
+
+        /* 高级量子流光动作按钮 */
         .btn-action {
             background: linear-gradient(135deg, #00ffc8 0%, #0088ff 100%);
             border: none;
-            border-radius: 12px;
-            color: #050508;
-            font-weight: bold;
-            font-size: 1.2rem;
-            padding: 15px 30px;
+            border-radius: 14px;
+            color: #030305;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            padding: 16px 32px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 0 15px rgba(0, 255, 200, 0.4);
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 20px rgba(0, 255, 200, 0.35);
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 255, 200, 0.5);
         }
         .btn-action:active {
-            transform: scale(0.95);
-            box-shadow: 0 0 5px rgba(0, 255, 200, 0.2);
+            transform: translateY(1px) scale(0.98);
         }
 
-        /* --- 局内战术操作 HUD 界面 --- */
+        /* --- [5] 局内高级 HUD (实时战场数据) --- */
         #game-hud {
             position: absolute;
             top: 0;
@@ -109,45 +151,50 @@
             width: 100%;
             height: 100%;
             z-index: 5;
-            display: none; /* 默认隐藏，启动后强行开启 */
-            pointer-events: none; /* 穿透触摸，交给左屏虚拟摇杆 */
+            display: none; /* 初始隐藏 */
+            pointer-events: none;
         }
-        .interactive {
-            pointer-events: auto; /* 按钮恢复点击 */
-        }
+        .interactive { pointer-events: auto; }
 
+        /* 右上角硬核 Top 5 排行榜 */
         .leaderboard {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 220px;
-            padding: 15px;
-            font-family: monospace;
+            top: 30px;
+            right: 30px;
+            width: 240px;
+            padding: 18px;
+            font-family: 'Courier New', Courier, monospace;
+            border-color: rgba(0, 136, 255, 0.3);
         }
 
+        /* 右下角大招及冲刺技能盘 */
         .action-panel {
             position: absolute;
-            bottom: 30px;
-            right: 30px;
+            bottom: 40px;
+            right: 40px;
             display: flex;
-            gap: 15px;
+            gap: 20px;
         }
         .hud-btn {
-            width: 70px;
-            height: 70px;
+            width: 75px;
+            height: 75px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-weight: bold;
+            font-weight: 800;
             font-size: 0.9rem;
+            letter-spacing: 1px;
             position: relative;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
         .hud-btn.locked::after {
             content: '🔒';
             position: absolute;
-            font-size: 1.2rem;
-            background: rgba(0,0,0,0.6);
+            font-size: 1.3rem;
+            background: rgba(3, 3, 5, 0.75);
             width: 100%;
             height: 100%;
             border-radius: 50%;
@@ -156,135 +203,177 @@
             align-items: center;
         }
 
-        /* 警告消息弹窗 */
+        /* 全局高科技报错警告 (Message 提示) */
         #global-message {
             position: absolute;
-            top: 15%;
+            top: 20%;
             left: 50%;
             transform: translate(-50%, -50%);
-            padding: 15px 30px;
+            padding: 15px 35px;
             border: 2px solid #ff0055;
-            box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+            background: rgba(20, 5, 10, 0.85);
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.6);
             display: none;
             z-index: 100;
-            font-weight: bold;
-            text-align: center;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #ff0055;
+            text-shadow: 0 0 5px rgba(255,0,85,0.3);
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
     <div id="canvas-container"></div>
 
-    <div id="global-message" class="glass-panel"></div>
+    <div id="global-message" class="glass-panel">WEAPON NOT PURCHASED! PLEASE BUY IT IN THE ARMORY.</div>
 
     <div id="main-menu">
-        <h1 class="game-title">BALLRANGER.IO</h1>
+        <h1 class="game-title">BallRanger.io</h1>
         
         <div class="lobby-center">
             <div class="armory-card glass-panel">
-                <h3 style="color:#00ffc8;">ARMORY STOCK</h3>
-                <div id="shop-items" style="margin: 10px 0; font-size: 0.9rem;">
-                    <div>⚡ Lightning Ammo: <span id="ui-lightning-count">0</span></div>
-                    <div>🧲 Vacuum Ammo: <span id="ui-vacuum-count">0</span></div>
+                <div class="card-title" style="color: #00ffc8;">ARMORY STOCK</div>
+                <div style="flex: 1; display:flex; flex-direction:column; justify-content:center;">
+                    <div class="shop-row"><span>⚡ Lightning Ammo:</span><span style="color:#00ffc8; font-weight:bold;">03 Gold</span></div>
+                    <div class="shop-row"><span>🧲 Vacuum Ammo:</span><span style="color:#0088ff; font-weight:bold;">20 Gold</span></div>
                 </div>
-                <button class="btn-action" style="font-size: 0.9rem; padding: 10px;" id="ad-ammo-btn">WATCH AD FOR AMMO</button>
+                <button class="btn-action" style="font-size:0.85rem; padding:10px 20px; background:rgba(255,255,255,0.08); border:1px solid rgba(0,255,200,0.4); color:#00ffc8; box-shadow:none;" id="ad-btn">WATCH AD FOR AMMO</button>
             </div>
             
             <div class="armory-card glass-panel">
-                <h3 style="color:#0088ff;">SELECT ORB</h3>
-                <div style="flex:1; display:flex; justify-content:center; align-items:center;">
-                    <span style="color:rgba(255,255,255,0.3)">[ 3D Arena Preview ]</span>
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn-action" style="flex:1; font-size:0.8rem; padding:8px;">PREV</button>
-                    <button class="btn-action" style="flex:1; font-size:0.8rem; padding:8px;">NEXT</button>
+                <div class="card-title" style="color: #0088ff;">MULTIPLIER MULTIPLEX</div>
+                <div style="flex: 1; display:flex; flex-direction:column; justify-content:center; gap: 10px;">
+                    <button class="btn-action" style="font-size:0.85rem; padding:10px; width:100%;" id="x5-btn">BUFF STARTING SIZE x5</button>
+                    <button class="btn-action" style="font-size:0.85rem; padding:10px; width:100%; background: linear-gradient(135deg, #0088ff 0%, #7000ff 100%); color:#fff;" id="x2-btn">MULTIPLY SIZE x2 (CAP)</button>
                 </div>
             </div>
         </div>
 
-        <button class="btn-action" style="width: min(80vw, 300px); margin-bottom: 5vh;" id="start-btn">START GAME</button>
+        <button class="btn-action" style="width: min(85vw, 340px); font-size: 1.3rem; margin-bottom: 3vh;" id="start-btn">START GAME</button>
     </div>
 
     <div id="game-hud">
         <div class="leaderboard glass-panel">
-            <h4 style="color:#00ffc8; margin-bottom:5px;">TOP 5 RANGERS</h4>
-            <div id="leaderboard-list"></div>
+            <h4 style="color:#00ffc8; margin-bottom:8px; font-size:0.9rem;">TOP 5 RANGERS</h4>
+            <div style="font-size:0.85rem; line-height:1.6; color:rgba(255,255,255,0.7);">
+                <div>01. PLAYER_ORB ------ 2048</div>
+                <div>02. AI_HUNTER_X ----- 512</div>
+                <div>03. AI_BOT_09 ------- 256</div>
+                <div>04. AI_CRUSHER ------ 128</div>
+                <div>05. GHOST_RANGER ---- 64</div>
+            </div>
         </div>
 
         <div class="action-panel">
-            <div id="btn-dash" class="hud-btn glass-panel interactive" style="border-color:#fff; cursor:pointer;">DASH</div>
-            <div id="btn-weapon" class="hud-btn glass-panel interactive locked" style="border-color:#00ffc8; cursor:pointer;">SKILL</div>
+            <div id="btn-dash" class="hud-btn glass-panel interactive" style="border-color:#ffffff;">DASH</div>
+            <div id="btn-weapon" class="hud-btn glass-panel interactive locked" style="border-color:#00ffc8;">SKILL</div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
     <script>
-        // 在所有 JS 加载前，强行在最高窗口注入全局状态变量，防止物理引擎和UI打架
-        window.isGameRunning = false;
-        window.playerWallet = window.playerWallet || { coins: 5, lightning: 0, vacuum: 0, hasShield: false, hasLightning: false, hasVacuum: false };
-    </script>
+        // 初始化全局闭环资产钱包
+        window.playerWallet = { coins: 5, lightning: 0, vacuum: 0, hasLightning: false, hasShield: false };
+        let scene, camera, renderer, starField;
 
-    <script src="MainScene.js"></script>
-    <script src="PhysicsEngine.js"></script>
-    <script src="WeaponSystem.js"></script>
-    <script src="GameUI.js"></script>
+        // 手搓应急 3D 视觉（哪怕外部文件加载失败，自带引擎也绝对不准黑屏！）
+        function initFallbackVisuals() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x040406);
 
-    <script>
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 30, 40);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // 绝杀暗黑：手搓高科技 3D 悬浮粒子星河背景（500颗流星粒子点燃星空）
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsCount = 500;
+            const positions = new Float32Array(starsCount * 3);
+            for(let i=0; i<starsCount*3; i++) {
+                positions[i] = (Math.random() - 0.5) * 100;
+            }
+            starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const starsMaterial = new THREE.PointsMaterial({ color: 0x00ffc8, size: 0.15, transparent: true, opacity: 0.6 });
+            starField = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(starField);
+
+            // 手搓一个临时的 3D 绿色荧光金属网格代表碗底，防止画面死寂
+            const gridHelper = new THREE.GridHelper(60, 30, 0x00ffc8, 0x222233);
+            gridHelper.position.y = -0.5;
+            scene.add(gridHelper);
+
+            // 灯光全满
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0x00ffc8, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            // 帧率自适应主循环
+            function animate() {
+                requestAnimationFrame(animate);
+                if (starField) starField.rotation.y += 0.001; // 粒子星河缓缓转动
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        // 窗口尺寸自适应拉伸算法
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+        // 强行起跑与按键拦截破门
         document.addEventListener("DOMContentLoaded", () => {
-            console.log("BallRanger.io: 全盘合体初始化就绪。正在架设破门通路...");
+            initFallbackVisuals(); // 抢先加载 3D 粒子背景，绝不黑屏
 
-            const startButton = document.getElementById('start-btn');
-            const mainMenu = document.getElementById('main-menu');
-            const gameHud = document.getElementById('game-hud');
+            const startBtn = document.getElementById('start-btn');
+            const menu = document.getElementById('main-menu');
+            const hud = document.getElementById('game-hud');
+            const msg = document.getElementById('global-message');
+            const skillBtn = document.getElementById('btn-weapon');
 
-            // 核心破门点火函数
-            function executeGameLaunch() {
-                // 如果主界面已经关了，说明运行中，直接跳过防止二次初始化
-                if (mainMenu && mainMenu.style.display === 'none') return;
-
-                console.log("🔥 收到起跑信号！强行切断封面，释放 3D 战场！");
-                
-                // 1. UI 瞬间切换
-                if (mainMenu) mainMenu.style.display = 'none';
-                if (gameHud) gameHud.style.display = 'block';
-
-                // 2. 强行激活所有子文件里的核心状态机
+            function triggerLaunch() {
+                if (menu.style.display === 'none') return;
+                console.log("🚀 指挥部核心：游戏点火启动！");
+                menu.style.display = 'none';
+                hud.style.display = 'block';
                 window.isGameRunning = true;
-                if (typeof isGameRunning !== 'undefined') isGameRunning = true;
-
-                // 3. 强行激活 File 3 物理引擎的局内对局初始化
-                if (typeof initPhysicsMatch === 'function') {
-                    initPhysicsMatch();
-                } else if (window.initPhysicsMatch === 'function') {
-                    window.initPhysicsMatch();
-                }
-
-                // 4. 强行拉起 File 2 3D 渲染主循环（防止静止一片黑）
-                if (typeof animate === 'function') {
-                    requestAnimationFrame(animate);
-                }
             }
 
-            // 监听一：强行绑定鼠标点击、电话和 iPad 的手指触摸
-            if (startButton) {
-                startButton.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    executeGameLaunch();
-                });
-                startButton.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    executeGameLaunch();
-                });
+            // 点击 START 按钮强行突入
+            if (startBtn) {
+                startBtn.addEventListener('click', triggerLaunch);
+                startBtn.addEventListener('touchstart', (e) => { e.preventDefault(); triggerLaunch(); });
             }
 
-            // 监听二：强行破门！键盘 Enter 键死死绑架
-            window.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' || event.keyCode === 13) {
-                    executeGameLaunch();
+            // 按 Enter 键强行突入
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    triggerLaunch();
                 }
             });
+
+            // 拦截 A 方案：点击带锁技能弹出高科技报错提示
+            if (skillBtn) {
+                skillBtn.addEventListener('click', () => {
+                    if (!window.playerWallet.hasLightning) {
+                        msg.style.display = 'block';
+                        setTimeout(() => { msg.style.display = 'none'; }, 2500); // 2.5秒后自动隐去
+                    }
+                });
+            }
         });
     </script>
 </body>
