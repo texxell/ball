@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>BallRanger.io - Core Systems Client</title>
+    <title>BallRanger.io - Official Ultimate Production</title>
     <style>
         /* ============================================================================
-         * 全域基礎樣式與霓虹科技感重設
+         * 1. 全域基礎樣式與高科技霓虹背景重設
          * ============================================================================ */
         html, body {
             margin: 0;
@@ -21,7 +21,7 @@
             -webkit-user-select: none;
         }
 
-        /* 3D Three.js 渲染舞台 */
+        /* 3D 渲染畫布容器 */
         #canvas-container {
             position: absolute;
             top: 0;
@@ -31,7 +31,7 @@
             z-index: 1;
         }
 
-        /* 全域網頁背景微光粒子感 */
+        /* 科技網格背景線條 */
         .grid-overlay {
             position: absolute;
             top: 0;
@@ -45,6 +45,152 @@
             pointer-events: none;
             z-index: 2;
         }
+
+        /* 全域霓虹文字特效 */
+        .neon-cyan { color: #00f2fe; text-shadow: 0 0 10px rgba(0, 242, 254, 0.6); }
+        .neon-gold { color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.6); }
+        .neon-magenta { color: #ff007f; text-shadow: 0 0 10px rgba(255, 0, 127, 0.6); }
+
+        /* ============================================================================
+         * 2. 高科技毛玻璃面板通域樣式 (Glassmorphism)
+         * ============================================================================ */
+        .glass-panel {
+            background: rgba(10, 25, 47, 0.65);
+            border: 1px solid rgba(0, 242, 254, 0.25);
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* ============================================================================
+         * 3. 虛擬搖桿 (Joystick System) 核心樣式 - 確保藍色圈圈100%可動
+         * ============================================================================ */
+        .joystick-container {
+            position: absolute;
+            bottom: 60px;
+            left: 60px;
+            width: 130px;
+            height: 130px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(0, 242, 254, 0.35);
+            border-radius: 50%;
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.15), inset 0 0 20px rgba(0, 242, 254, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            touch-action: none;
+        }
+
+        .joystick-stick {
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 15px #00f2fe, 0 0 30px rgba(0, 242, 254, 0.5);
+            cursor: pointer;
+            touch-action: none;
+            transform: translate(0px, 0px);
+            transition: transform 0.03s ease-out;
+        }
+
+        /* ============================================================================
+         * 4. 頂部 HUD 狀態列 (Resource HUD) 樣式
+         * ============================================================================ */
+        .game-hud-top {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 90;
+            pointer-events: none;
+        }
+
+        .hud-status-card {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            gap: 20px;
+            pointer-events: auto;
+        }
+
+        .leaderboard-card {
+            padding: 15px;
+            width: 220px;
+            font-size: 13px;
+            pointer-events: auto;
+        }
+
+        .leaderboard-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 242, 254, 0.2);
+            padding-bottom: 4px;
+        }
+
+        /* ============================================================================
+         * 5. 主選單大廳與軍火商店面板樣式 (Main Menu & Armory Shop)
+         * ============================================================================ */
+        .main-menu-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            padding: 30px;
+            text-align: center;
+            z-index: 110;
+        }
+
+        .menu-title {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 25px;
+            letter-spacing: 2px;
+        }
+
+        .neon-btn {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: 1px solid #00f2fe;
+            background: rgba(0, 242, 254, 0.1);
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .neon-btn:active {
+            background: rgba(0, 242, 254, 0.3);
+            box-shadow: 0 0 20px #00f2fe;
+            transform: scale(0.98);
+        }
+
+        .neon-btn.gold-btn {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+
+        .neon-btn.gold-btn:active {
+            background: rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 20px #ffd700;
+        }
+
+        /* 商店隱藏/顯示狀態控制 */
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -53,15 +199,43 @@
     
     <div class="grid-overlay"></div>
 
-    <div id="ballranger-main-ui-layer" class="ballranger-ui-container">
+    <div class="game-hud-top">
+        <div class="hud-status-card glass-panel">
+            <div>金幣: <span id="player-coins-display" class="neon-gold">0</span></div>
+            <div>彈藥: <span id="player-ammo-display" class="neon-cyan">0/0</span></div>
         </div>
+        
+        <div id="live-leaderboard-card" class="leaderboard-card glass-panel">
+            <div class="leaderboard-title neon-cyan">LEADERBOARD</div>
+            <div id="leaderboard-list">
+                <div style="display:flex; justify-content:space-between; margin:2px 0;"><span>1. Player</span><span class="neon-gold">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="joystick-zone" class="joystick-container">
+        <div id="joystick-handle" class="joystick-stick"></div>
+    </div>
+
+    <div id="main-menu-panel" class="main-menu-overlay glass-panel">
+        <div class="menu-title neon-cyan">BALLRANGER.IO</div>
+        
+        <button id="btn-start-game" class="neon-btn">進入戰鬥伺服器</button>
+        <button id="btn-open-shop" class="neon-btn gold-btn">軍火物資商店 (Ad+)</button>
+        
+        <div id="embedded-shop-zone" class="hidden" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(0,242,254,0.2);">
+            <div class="neon-gold" style="font-size:14px; margin-bottom:10px;">軍火補給清單</div>
+            <button id="btn-buy-ammo" class="neon-btn" style="padding:8px; font-size:13px;">購買高級彈藥 (-50金幣)</button>
+            <button id="btn-watch-ad" class="neon-btn gold-btn" style="padding:8px; font-size:13px;">觀看熱點廣告 (+100金幣)</button>
+            <button id="btn-close-shop" class="neon-btn" style="padding:8px; font-size:13px; border-color:#ff007f; background:rgba(255,0,127,0.1);">返回主選單</button>
+        </div>
+    </div>
+
+    <div id="ballranger-main-ui-layer"></div>
 
     <script src="GameMath.js"></script>
-    
     <script src="MainScene.js"></script>
-    
     <script src="GameCore.js"></script>
-    
     <script src="GameUI.js"></script>
 
 </body>
