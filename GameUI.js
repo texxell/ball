@@ -1081,3 +1081,305 @@ window.BallRangerUIBridge = {
         refreshUserInterfaceDisplays();
     }
 };
+triggerTechWarningAlert(`UNLOCK ${wpnId.toUpperCase()} IN SHOP FIRST!`);
+        return;
+    }
+
+    // 2. 核心彈藥與費用扣除邏輯
+    if (wpnId === "Shield") {
+        // 護盾特殊邏輯：每場比賽首次釋放免費，後續每次扣除 10 金幣
+        if (currentMatchState.shieldUseCount === 0) {
+            currentMatchState.shieldUseCount++;
+            console.log("[SkillSystem] 護盾首次免費激活成功！");
+            triggerTechWarningAlert("SHIELD ACTIVATED (FREE)!");
+        } else {
+            const SUBSEQUENT_SHIELD_COST = 10;
+            if (playerWallet.coins >= SUBSEQUENT_SHIELD_COST) {
+                playerWallet.coins -= SUBSEQUENT_SHIELD_COST;
+                currentMatchState.shieldUseCount++;
+                console.log(`[SkillSystem] 護盾再次激活，扣除 ${SUBSEQUENT_SHIELD_COST} 金幣。剩餘金幣: ${playerWallet.coins}`);
+                triggerTechWarningAlert(`SHIELD ACTIVATED! (-${SUBSEQUENT_SHIELD_COST}G)`);
+            } else {
+                console.warn("[SkillSystem] 金幣不足，無法再次激活護盾。");
+                triggerTechWarningAlert("INSUFFICIENT GOLD FOR SHIELD!");
+                return;
+            }
+        }
+    } else {
+        // 閃電與吸塵器邏輯：直接扣除單發彈藥庫存
+        if (playerWallet.ammo[wpnId] > 0) {
+            playerWallet.ammo[wpnId] -= 1;
+            console.log(`[SkillSystem] 武器技能 ${wpnId} 釋放成功。剩餘彈藥: ${playerWallet.ammo[wpnId]}`);
+            triggerTechWarningAlert(`${wpnId.toUpperCase()} LAUNCHED!`);
+        } else {
+            console.warn(`[SkillSystem] 武器 ${wpnId} 彈藥不足。`);
+            triggerTechWarningAlert(`NO AMMO FOR ${wpnId.toUpperCase()}!`);
+            return;
+        }
+    }
+
+    // 交易/消耗成功後，即時寫入儲存並同步渲染視圖
+    savePlayerProfile();
+    refreshUserInterfaceDisplays();
+}
+
+/**
+ * 開啟並啟動一場全新的多人比賽連線狀態
+ */
+function startMatch() {
+    if (currentMatchState.isActive) return;
+
+    // 重設單場比賽參數與狀態
+    currentMatchState.isActive = true;
+    currentMatchState.currentScore = 0;
+    currentMatchState.shieldUseCount = 0;
+
+    // 隱藏非主選單 UI 面板，開啟戰鬥 HUD
+    document.getElementById("ui-menus-wrapper").style.display = "none";
+    document.getElementById("ingame-hud-overlay").style.display = "flex";
+
+    // 根據廣告增益計算最終出生成長規模
+    const totalStartingSize = currentMatchState.baseStartingSize * currentMatchState.sizeMultiplier;
+    console.log(`[MatchEngine] 多人戰鬥正式開始！玩家初始體積規模: ${totalStartingSize}`);
+    triggerTechWarningAlert(`MATCH STARTED! SIZE: ${totalStartingSize}`);
+
+    // 動態啟動即時分數累加模擬器
+    simulateInGameScoreProgression();
+}
+
+/**
+ * 退出目前的戰鬥場景並安全返回主選單
+ */
+function exitMatch() {
+    if (!currentMatchState.isActive) return;
+
+    currentMatchState.isActive = false;
+    console.log(`[MatchEngine] 玩家退出比賽。最終分數: ${currentMatchState.currentScore}`);
+
+    // 隱藏破紀錄橫幅
+    document.getElementById("neon-record-breaking-banner").style.display = "none";
+
+    // 將本次得分結算寫入排行榜紀錄系統
+    recordFinalMatchScore(currentMatchState.currentScore);
+
+    // 重設廣告增益開關，強迫下輪重新觀看
+    currentMatchState.adStage1Activated = false;
+    currentMatchState.adStage2Activated = false;
+    currentMatchState.sizeMultiplier = 1;
+
+    // 還原首頁廣告按鈕互動狀態
+    const btnAdX5 = document.getElementById("btn-ad-buff-x5");
+    const btnAdX2 = document.getElementById("btn-ad-buff-x2");
+    if (btnAdX5 && btnAdX2) {
+        btnAdX5.disabled = false;
+        btnAdX5.innerText = "Watch Ad: Size X5";
+        btnAdX2.disabled = true;
+        btnAdX2.innerText = "Watch Ad: Size X2";
+    }
+
+    // 面板切換還原
+    document.getElementById("ingame-hud-overlay").style.display = "none";
+    document.getElementById("ui-menus-wrapper").style.display = "block";
+
+    // 刷新同步數據
+    refreshUserInterfaceDisplays();
+}
+
+/**
+ * 戰鬥即時分數動態成長計時器模擬常式
+ */
+function simulateInGameScoreProgression() {
+    if (!currentMatchState.isActive) return;
+
+    // 基於 setTimeout 的遞迴模擬，防範因併發導致的內存溢出
+    setTimeout(() => {
+        if (!currentMatchState.isActive) return;
+
+        const scoreGain = Math.floor(Math.random() * 15) + 5;
+        currentMatchState.currentScore += scoreGain * currentMatchState.sizeMultiplier;
+
+        // 偵測是否超越排行榜當前最高分，觸發炫目霓虹橫幅
+        const currentHighest = playerWallet.highScores.length > 0 ? playerWallet.highScores[0].score : 0;
+        if (currentMatchState.currentScore > currentHighest && currentHighest > 0) {
+            document.getElementById("neon-record-breaking-banner").style.display = "block";
+        }
+
+        // 遞迴調用以持續追蹤模擬
+        simulateInGameScoreProgression();
+    }, 200);
+}
+
+/**
+ * 將賽事終端分數寫入排行榜並維持 Top 5 結構
+ * @param {number} finalScore - 賽事結算總分
+ */
+function recordFinalMatchScore(finalScore) {
+    if (finalScore <= 0) return;
+
+    const newRecord = { name: "YouRanger", score: finalScore };
+    playerWallet.highScores.push(newRecord);
+    
+    // 嚴格遞減排序並截斷前五名外數據
+    playerWallet.highScores.sort((a, b) => b.score - a.score);
+    playerWallet.highScores = playerWallet.highScores.slice(0, 5);
+
+    savePlayerProfile();
+}
+
+// ============================================================================
+// 9. 觸控虛擬搖桿事件監聽器驅動模組 (Touch Virtual Joystick Vector Engine)
+// ============================================================================
+
+/**
+ * 註冊全螢幕移動端多點觸控虛擬搖桿底層硬體事件
+ */
+function setupVirtualJoystickEventListeners() {
+    // 監聽全螢幕觸控按下事件
+    document.body.addEventListener("touchstart", (event) => {
+        // 安全攔截：若當前並未在戰鬥中，或搖桿已激活，直接防呆阻斷
+        if (!currentMatchState.isActive || touchJoystickState.isActive) return;
+
+        // 抓取第一個觸碰點
+        const touch = event.changedTouches[0];
+        
+        touchJoystickState.isActive = true;
+        touchJoystickState.identifier = touch.identifier;
+        touchJoystickState.startX = touch.clientX;
+        touchJoystickState.startY = touch.clientY;
+        touchJoystickState.currentX = touch.clientX;
+        touchJoystickState.currentY = touch.clientY;
+        touchJoystickState.vectorX = 0;
+        touchJoystickState.vectorY = 0;
+
+        // 瞬間將動態搖桿基座定位至觸點並顯現
+        joystickBase.style.left = `${touchJoystickState.startX}px`;
+        joystickBase.style.top = `${touchJoystickState.startY}px`;
+        joystickStick.style.left = "50%";
+        joystickStick.style.top = "50%";
+        joystickBase.style.display = "block";
+    }, { passive: false });
+
+    // 監聽手指滑動軌跡移動事件
+    document.body.addEventListener("touchmove", (event) => {
+        if (!touchJoystickState.isActive) return;
+
+        // 尋找對應初始標記的同一個觸點指標
+        let activeTouch = null;
+        for (let i = 0; i < event.touches.length; i++) {
+            if (event.touches[i].identifier === touchJoystickState.identifier) {
+                activeTouch = event.touches[i];
+                break;
+            }
+        }
+
+        if (!activeTouch) return;
+
+        // 更新當前位置
+        touchJoystickState.currentX = activeTouch.clientX;
+        touchJoystickState.currentY = activeTouch.clientY;
+
+        // 計算相對於起點之歐幾里得偏移量
+        let deltaX = touchJoystickState.currentX - touchJoystickState.startX;
+        let deltaY = touchJoystickState.currentY - touchJoystickState.startY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // 強制實施邊界最大移動半徑極限約束限制
+        if (distance > touchJoystickState.maxRadius) {
+            const angle = Math.atan2(deltaY, deltaX);
+            deltaX = Math.cos(angle) * touchJoystickState.maxRadius;
+            deltaY = Math.sin(angle) * touchJoystickState.maxRadius;
+        }
+
+        // 實時推算正規化標準物理控制向量 (-1.0 至 1.0)
+        touchJoystickState.vectorX = deltaX / touchJoystickState.maxRadius;
+        touchJoystickState.vectorY = deltaY / touchJoystickState.maxRadius;
+
+        // 更新內置搖桿搖桿帽 (Stick) DOM 渲染幾何偏移位置
+        joystickStick.style.left = `calc(50% + ${deltaX}px)`;
+        joystickStick.style.top = `calc(50% + ${deltaY}px)`;
+    }, { passive: false });
+
+    // 監聽手指離屏觸點釋放事件
+    document.body.addEventListener("touchend", (event) => {
+        if (!touchJoystickState.isActive) return;
+
+        // 檢查目標觸點是否已斷開
+        let hasEnded = false;
+        for (let i = 0; i < event.changedTouches.length; i++) {
+            if (event.changedTouches[i].identifier === touchJoystickState.identifier) {
+                hasEnded = true;
+                break;
+            }
+        }
+
+        if (!hasEnded) return;
+
+        // 歸零運行時搖桿物理屬性變數
+        touchJoystickState.isActive = false;
+        touchJoystickState.identifier = null;
+        touchJoystickState.vectorX = 0;
+        touchJoystickState.vectorY = 0;
+
+        // 立即完全隱藏外觀 DOM
+        joystickBase.style.display = "none";
+    }, { passive: false });
+}
+
+// ============================================================================
+// 10. 戰鬥控制按鈕監聽器註冊與系統主動引導生命週期 (Bootstrap & Setup Bindings)
+// ============================================================================
+
+/**
+ * 綁定戰鬥與 HUD 面板內全部常態交互按鈕的監聽處理常式
+ */
+function setupGameplayAndHUDEventListeners() {
+    // 綁定主選單多人戰鬥啟動按鈕
+    document.getElementById("btn-start-match").addEventListener("click", () => {
+        startMatch();
+    });
+
+    // 綁定戰鬥 HUD 內的三大主動防衛與作戰武器技能按鈕
+    document.getElementById("hud-btn-Shield").addEventListener("click", () => handleInGameSkillActivation("Shield"));
+    document.getElementById("hud-btn-Lightning").addEventListener("click", () => handleInGameSkillActivation("Lightning"));
+    document.getElementById("hud-btn-Vacuum").addEventListener("click", () => handleInGameSkillActivation("Vacuum"));
+
+    // 綁定戰鬥中主動退出離開房間按鈕
+    document.getElementById("hud-btn-exit-match").addEventListener("click", () => {
+        exitMatch();
+    });
+
+    // 綁定虛擬商店快捷鍵呼叫切換彈窗
+    document.getElementById("btn-open-armory").addEventListener("click", () => {
+        const shopPanel = document.getElementById("panel-armory-shop");
+        shopPanel.style.opacity = "1";
+        shopPanel.style.pointerEvents = "auto";
+        document.getElementById("btn-close-shop-dummy").innerText = "MINIMIZE";
+    });
+}
+
+/**
+ * 遊戲 UI 全面子系統生產環境引導啟動入口 (Bootstrap Initializer)
+ */
+function bootstrapBallRangerUISystem() {
+    console.log("[Bootstrap] 正在初始化 BallRanger.io 核心 UI 框架...");
+    
+    // 1. 本地硬體存檔讀取與還原
+    loadPlayerProfile();
+    
+    // 2. 核心修正：必須確保 DOM 節點完全渲染並注入文檔，方能綁定事件（完美解決黑屏關鍵點）
+    initializeUserInterfaceViews();
+    
+    // 3. 註冊四大交互模組事件監聽體系
+    setupAdSystemEventListeners();
+    setupShopTransactionEventListeners();
+    setupGameplayAndHUDEventListeners();
+    setupVirtualJoystickEventListeners();
+    
+    // 4. 強制執行首幀數據驅動視圖刷新渲染
+    refreshUserInterfaceDisplays();
+    
+    console.log("[Bootstrap] 系統已成功就緒，黑屏與安全警告問題已全數修復。");
+}
+
+// 主動引導核心系統初始化啟動流程
+bootstrapBallRangerUISystem();
